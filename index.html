@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="ko">
 <meta charset="UTF-8">
 <head>
@@ -18,5 +18,96 @@
      <a href="https://jw-astro09.github.io/1111/순환시뮬2.html"><h2>순환 시뮬레이션2</h2></a>
     <br>
     <a href="https://jw-astro09.github.io/1111/영상.html"><h2>영상</h2></a>
+</body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>ppt 공유</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+</head>
+<body>
+    <a href="https://www.miricanvas.com/login?redirect=%2Fv2%2Fko%2Fdesign2%2F9cd541c7-a031-472f-ba81-2cd166f11f7f%3Flocation%3Ddesign%26type%3Dcopy_link%26access%3Dlink%26permission%3Deditor"><h2>ppt(miricanvas)</h2></a>
+    <br>
+    <a href="https://www.canva.com/design/DAHExU7WnZU/U0n_zhNlTQgP2NGvEcVv8A/edit?utm_content=DAHExU7WnZU&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton"><h2>ppt(canva)</h2></a>
+    <br>
+    <a href="https://jw-astro09.github.io/1111/밀도.html"><h2>밀도 시뮬레이션</h2></a>
+    <br>
+    <a href="https://jw-astro09.github.io/1111/순환시뮬1.html"><h2>순환 시뮬레이션1</h2></a>
+    <br>
+    <a href="https://jw-astro09.github.io/1111/순환시뮬2.html"><h2>순환 시뮬레이션2</h2></a>
+    <br>
+    <a href="https://jw-astro09.github.io/1111/영상.html"><h2>영상</h2></a>
+
+    <hr>
+
+    <div id="vote-section" style="padding: 20px; background-color: #f9f9f9; border-radius: 10px;">
+        <h3>더 마음에 드는 PPT에 투표</h3>
+        <p style="font-size: 0.9em; color: #666;">* 익명 투표이며, 언제든 선택을 바꿀 수 있습니다.</p>
+        
+        <button onclick="castVote('miricanvas')" style="padding: 10px 20px; cursor: pointer;">Miricanvas 선택</button>
+        <button onclick="castVote('canva')" style="padding: 10px 20px; cursor: pointer;">Canva 선택</button>
+        
+        <div id="vote-result" style="margin-top: 20px; font-size: 1.2em; font-weight: bold;">
+            투표 데이터를 불러오는 중...
+        </div>
+    </div>
+
+    <script>
+        // Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyB6klaR0hR3R9_xFnUZFkvr2PEnd4bpfE8",
+            authDomain: "bshs-vote.firebaseapp.com",
+            projectId: "bshs-vote",
+            storageBucket: "bshs-vote.firebasestorage.app",
+            messagingSenderId: "344014838794",
+            appId: "1:344014838794:web:1ba892b83a635d891813f3",
+            measurementId: "G-JP654LH4QV"
+        };
+
+        // Firebase 초기화
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const voteRef = database.ref('ppt_votes');
+
+        // 투표 기능 함수
+        function castVote(newChoice) {
+            const lastChoice = localStorage.getItem('user_ppt_vote');
+
+            // 1. 이미 같은 곳에 투표한 경우 방지
+            if (lastChoice === newChoice) {
+                alert("이미 해당 항목에 투표하셨습니다.");
+                return;
+            }
+
+            // 2. 이전 투표 기록이 있다면 기존 항목에서 -1
+            if (lastChoice) {
+                voteRef.child(lastChoice).transaction((current) => (current || 1) - 1);
+            }
+
+            // 3. 새로운 선택 항목에 +1
+            voteRef.child(newChoice).transaction((current) => (current || 0) + 1);
+
+            // 4. 로컬 스토리지 업데이트 (재투표 가능하도록 보관)
+            localStorage.setItem('user_ppt_vote', newChoice);
+            alert("투표가 반영되었습니다!");
+        }
+
+        // 실시간 투표 현황 업데이트
+        voteRef.on('value', (snapshot) => {
+            const data = snapshot.val() || { miricanvas: 0, canva: 0 };
+            const mCount = data.miricanvas || 0;
+            const cCount = data.canva || 0;
+            
+            document.getElementById('vote-result').innerHTML = `
+                <p>Miricanvas: ${mCount}표</p>
+                <p>Canva: ${cCount}표</p>
+            `;
+        });
+    </script>
 </body>
 </html>
