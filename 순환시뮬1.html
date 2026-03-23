@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>심층 순환 실시간 시뮬레이터</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;500;700;900&display=swap');
+  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background-color: #020813;
+    color: #fff;
+    font-family: 'Noto Sans KR', sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* 캔버스 배경 */
+  #simCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: 1;
+  }
+
+  /* UI 레이어 */
+  #ui-layer {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: 10;
+    pointer-events: none; /* UI 빈 공간 클릭 무시 */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 30px;
+  }
+
+  .panel {
+    background: rgba(10, 20, 40, 0.7);
+    border: 1px solid rgba(79, 195, 247, 0.3);
+    border-radius: 16px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+    pointer-events: auto; /* 패널은 클릭 가능 */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  /* 상단 헤더 */
+  header {
+    text-align: center;
+    pointer-events: auto;
+  }
+  header h1 {
+    font-size: 2.5em;
+    font-weight: 900;
+    background: linear-gradient(135deg, #fff, #4fc3f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  }
+  header p { color: #a0c0e0; font-size: 1.1em; }
+
+  /* 중앙 영역 (좌/우 패널) */
+  .middle-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex: 1;
+    margin-top: 30px;
+  }
+
+  /* 좌측: 컨트롤 패널 */
+  .control-panel {
+    width: 320px;
+  }
+  .control-panel h2 { color: #4fc3f7; font-size: 1.2em; margin-bottom: 20px; display: flex; justify-content: space-between; }
+  .control-group { margin-bottom: 25px; }
+  .control-label { display: flex; justify-content: space-between; font-size: 0.95em; color: #ccc; margin-bottom: 8px; }
+  .control-label span.val { font-weight: 700; color: #fff; font-size: 1.1em; }
+  
+  input[type="range"] {
+    width: 100%; height: 8px;
+    -webkit-appearance: none;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px; outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px; height: 22px;
+    background: #4fc3f7;
+    border-radius: 50%; cursor: pointer;
+    box-shadow: 0 0 10px #4fc3f7;
+  }
+  #tempSlider::-webkit-slider-thumb { background: #ff6b6b; box-shadow: 0 0 10px #ff6b6b; }
+
+  /* 우측: 데이터 모니터 */
+  .data-panel {
+    width: 300px;
+  }
+  .data-panel h2 { color: #a0f0a0; font-size: 1.2em; margin-bottom: 20px; }
+  .data-box {
+    background: rgba(0,0,0,0.4);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .data-title { font-size: 0.8em; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+  .data-value { font-size: 2em; font-weight: 900; margin: 5px 0; }
+  
+  .bar-bg { width: 100%; height: 8px; background: #222; border-radius: 4px; overflow: hidden; margin-top: 10px; }
+  .bar-fill { height: 100%; width: 100%; transition: width 0.3s, background 0.3s; }
+
+  /* 하단: 시나리오 재생 버튼 (비디오 느낌) */
+  .bottom-section {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    pointer-events: auto;
+  }
+  .btn-scenario {
+    background: rgba(15, 30, 60, 0.8);
+    border: 2px solid #1a3060;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 1em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .btn-scenario:hover, .btn-scenario.active {
+    background: rgba(79, 195, 247, 0.2);
+    border-color: #4fc3f7;
+    box-shadow: 0 0 15px rgba(79, 195, 247, 0.4);
+  }
+  .btn-scenario.danger:hover, .btn-scenario.danger.active {
+    background: rgba(255, 82, 82, 0.2);
+    border-color: #ff5252;
+    box-shadow: 0 0 15px rgba(255, 82, 82, 0.4);
+  }
+
+  /* 경고 오버레이 (비네팅) */
+  #warning-vignette {
+    position: absolute; top:0; left:0; width:100vw; height:100vh;
+    background: radial-gradient(circle, transparent 50%, rgba(255,0,0,0.4) 100%);
+    z-index: 5; opacity: 0; pointer-events: none; transition: opacity 0.5s;
+  }
+  #warning-text {
+    position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 4em; font-weight: 900; color: #ff5252;
+    text-shadow: 0 0 20px rgba(255,0,0,0.8);
+    z-index: 6; opacity: 0; pointer-events: none; transition: opacity 0.5s;
+    text-align: center;
+  }
+  #warning-text span { display: block; font-size: 0.4em; color: #fff; margin-top: 10px; font-weight: 500;}
+
+</style>
+</head>
+<body>
+
+<canvas id="simCanvas"></canvas>
+<div id="warning-vignette"></div>
+<div id="warning-text">⚠️ 순환 정지<span>밀도 차이가 사라져 심층 침강이 멈췄습니다.</span></div>
+
+<div id="ui-layer">
+  <header>
+    <h1>심층 순환 시뮬레이터</h1>
+    <p>고위도 해수의 온도와 염분을 조절하여 대양 컨베이어 벨트의 변화를 관찰하세요</p>
+  </header>
+
+  <div class="middle-section">
+    <!-- 좌측 컨트롤 패널 -->
+    <div class="panel control-panel">
+      <h2>⚙️ 환경 변수 조절 <button onclick="resetSim()" style="background:none;border:none;color:#888;cursor:pointer;">↺ 초기화</button></h2>
+      
+      <div class="control-group">
+        <div class="control-label">
+          <span>🌡 북대서양 수온</span>
+          <span class="val" id="val-temp" style="color:#ff6b6b">2.0 °C</span>
+        </div>
+        <input type="range" id="slider-temp" min="-2" max="15" step="0.1" value="2">
+        <div style="display:flex; justify-content:space-between; font-size:0.7em; color:#666; margin-top:5px;">
+          <span>빙하기</span><span>온난화</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">
+          <span>🧂 북대서양 염분</span>
+          <span class="val" id="val-sal" style="color:#a0e0ff">35.0 ‰</span>
+        </div>
+        <input type="range" id="slider-sal" min="30" max="37" step="0.1" value="35">
+        <div style="display:flex; justify-content:space-between; font-size:0.7em; color:#666; margin-top:5px;">
+          <span>담수 유입</span><span>결빙(고염분)</span>
+        </div>
+      </div>
+      
+      <div style="font-size:0.85em; color:#a0c0e0; line-height:1.5; padding-top:10px; border-top:1px solid rgba(255,255,255,0.1);">
+        💡 <strong>원리:</strong> 수온이 낮고 염분이 높을수록 물이 무거워져(밀도 증가) 심해로 강하게 가라앉습니다.
+      </div>
+    </div>
+
+    <!-- 우측 모니터 패널 -->
+    <div class="panel data-panel">
+      <h2>📊 실시간 데이터 모니터</h2>
+      
+      <div class="data-box">
+        <div class="data-title">고위도 해수 밀도</div>
+        <div class="data-value" id="disp-density" style="color:#fff;">1027.8</div>
+        <div style="font-size:0.8em; color:#888;">(kg/m³) / 기준치: 1027.5</div>
+      </div>
+
+      <div class="data-box">
+        <div class="data-title">심층 침강 속도</div>
+        <div class="data-value" id="disp-speed" style="color:#4fc3f7;">100%</div>
+        <div class="bar-bg"><div class="bar-fill" id="bar-speed" style="background:#4fc3f7; width:100%;"></div></div>
+      </div>
+
+      <div class="data-box" style="border:none; background:none;">
+        <div class="data-title">기후 상태 예상</div>
+        <div class="data-value" id="disp-climate" style="color:#a5d6a7; font-size:1.5em; margin-top:10px;">안정 (정상)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 하단 비디오 컨트롤 -->
+  <div class="bottom-section">
+    <button class="btn-scenario active" id="btn-sc1" onclick="runScenario(1)">▶ 1. 정상 순환</button>
+    <button class="btn-scenario" id="btn-sc2" onclick="runScenario(2)">▶ 2. 지구온난화 가속</button>
+    <button class="btn-scenario danger" id="btn-sc3" onclick="runScenario(3)">🚨 3. 빙하 융해 및 순환 정지</button>
+  </div>
+</div>
+
+<script>
+/**
+ * 물리 엔진 및 시뮬레이션 상태
+ */
+const sim = {
+  temp: 2.0,      // 현재 수온
+  sal: 35.0,      // 현재 염분
+  density: 0,     // 계산된 밀도
+  speed: 1.0,     // 계산된 순환 속도 (0~1.5)
+  iceMass: 1.0,   // 빙하 크기 (0~1)
+  time: 0         // 애니메이션 타임
+};
+
+// UI 요소
+const slTemp = document.getElementById('slider-temp');
+const slSal = document.getElementById('slider-sal');
+const valTemp = document.getElementById('val-temp');
+const valSal = document.getElementById('val-sal');
+
+// 슬라이더 이벤트
+slTemp.addEventListener('input', (e) => { stopAuto(); updateSim(parseFloat(e.target.value), sim.sal); });
+slSal.addEventListener('input', (e) => { stopAuto(); updateSim(sim.temp, parseFloat(e.target.value)); });
+
+// 물리량 계산 함수
+function calculatePhysics(t, s) {
+  // 간이 상태 방정식 (시각적 목적을 위한 단순화된 밀도 공식)
+  // 기본 밀도 1000 + 염분효과(s * 0.8) - 수온효과(t * 0.2)
+  let d = 1000 + (s * 0.8) - (t * 0.2);
+  
+  // 침강 기준 밀도 설정 (1027.3 이하가 되면 침강 멈춤)
+  let threshold = 1027.3;
+  let spd = Math.max(0, (d - threshold) / (1027.8 - threshold));
+  
+  // 빙하 질량 (수온이 4도 이상이면 녹기 시작)
+  let ice = 1.0;
+  if (t > 4) ice = Math.max(0, 1 - (t - 4) / 8);
+
+  return { density: d, speed: Math.min(spd, 1.5), ice: ice };
+}
+
+// 시뮬레이션 업데이트
+function updateSim(t, s) {
+  sim.temp = t;
+  sim.sal = s;
+  
+  let phys = calculatePhysics(t, s);
+  sim.density = phys.density;
+  
+  // 속도는 서서히 변하도록(관성) draw 루프에서 보간 처리하지만, UI는 목표값을 미리 보여줌
+  sim.targetSpeed = phys.speed; 
+  sim.targetIce = phys.ice;
+
+  // 슬라이더 동기화
+  slTemp.value = t; slSal.value = s;
+  valTemp.innerText = t.toFixed(1) + " °C";
+  valSal.innerText = s.toFixed(1) + " ‰";
+
+  // UI 업데이트
+  document.getElementById('disp-density').innerText = sim.density.toFixed(2);
+  
+  let speedPct = Math.round(sim.targetSpeed * 100);
+  document.getElementById('disp-speed').innerText = speedPct + "%";
+  document.getElementById('bar-speed').style.width = Math.min(speedPct, 100) + "%";
+  
+  // 상태 텍스트
+  let speedColor, statusTxt, statusColor;
+  if (sim.targetSpeed > 0.8) {
+    speedColor = '#4fc3f7'; statusTxt = '안정 (정상)'; statusColor = '#a5d6a7';
+    document.getElementById('warning-vignette').style.opacity = 0;
+    document.getElementById('warning-text').style.opacity = 0;
+  } else if (sim.targetSpeed > 0.3) {
+    speedColor = '#ffd54f'; statusTxt = '순환 약화 (위험)'; statusColor = '#ffd54f';
+    document.getElementById('warning-vignette').style.opacity = 0;
+    document.getElementById('warning-text').style.opacity = 0;
+  } else {
+    speedColor = '#ff5252'; statusTxt = '한랭화 우려 (재앙)'; statusColor = '#ff5252';
+    document.getElementById('warning-vignette').style.opacity = 1;
+    document.getElementById('warning-text').style.opacity = 1;
+  }
+  
+  document.getElementById('disp-speed').style.color = speedColor;
+  document.getElementById('bar-speed').style.background = speedColor;
+  document.getElementById('disp-climate').innerText = statusTxt;
+  document.getElementById('disp-climate').style.color = statusColor;
+}
+
+// 캔버스 렌더링 설정
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// 파티클 (물방울) 클래스
+class Particle {
+  constructor() {
+    this.progress = Math.random(); // 0(표층시작) -> 1(용승끝)
+    this.offset = (Math.random() - 0.5) * 30; // 상하 진동 폭
+    this.size = 2 + Math.random() * 4;
+    this.baseAlpha = 0.5 + Math.random() * 0.5;
+    this.trail = [];
+  }
+  update(dt, currentSpeed) {
+    // 이동 속도 (현재 속도 곱함)
+    let spd = 0.1 * currentSpeed * dt;
+    // 침강구간(0.25~0.4)에서 더 빠르게
+    if (this.progress > 0.25 && this.progress < 0.4) spd *= 1.5;
+    
+    this.progress += spd;
+    if (this.progress > 1) {
+      this.progress -= 1;
+      this.trail = []; // 루프 돌면 꼬리 초기화
+    }
+  }
+  draw(ctx, currentSpeed) {
+    const sY = H * 0.3; // 표층 Y
+    const dY = H * 0.8; // 심층 Y
+    const lX = W * 0.1; // 왼쪽 끝 (용승)
+    const rX = W * 0.9; // 오른쪽 끝 (침강)
+
+    let x, y, color;
+    const p = this.progress;
+
+    // 경로 계산
+    if (p < 0.25) { // 표층
+      let t = p / 0.25;
+      x = lX + (rX - lX) * t;
+      y = sY + Math.sin(t * 15 + sim.time*2) * 5 + this.offset * 0.5;
+      color = '#ff6b6b'; // 빨강
+    } else if (p < 0.4) { // 침강
+      let t = (p - 0.25) / 0.15;
+      x = rX + Math.sin(t * Math.PI) * 20;
+      y = sY + (dY - sY) * t;
+      color = '#ffd54f'; // 노랑
+    } else if (p < 0.8) { // 심해 이동
+      let t = (p - 0.4) / 0.4;
+      x = rX - (rX - lX) * t;
+      y = dY + Math.sin(t * 10 + sim.time) * 5 + this.offset * 0.5;
+      color = '#4fc3f7'; // 파랑
+    } else { // 용승
+      let t = (p - 0.8) / 0.2;
+      x = lX + Math.sin(t * Math.PI) * 20;
+      y = dY - (dY - sY) * t;
+      color = '#a0f0a0'; // 초록
+    }
+
+    // 꼬리 그리기
+    this.trail.push({x, y});
+    if (this.trail.length > 10) this.trail.shift();
+    
+    if (currentSpeed > 0.1 && this.trail.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(this.trail[0].x, this.trail[0].y);
+      for(let i=1; i<this.trail.length; i++) ctx.lineTo(this.trail[i].x, this.trail[i].y);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = this.size * 0.5;
+      ctx.globalAlpha = this.baseAlpha * 0.3 * Math.min(1, currentSpeed);
+      ctx.stroke();
+    }
+
+    // 머리(입자) 그리기
+    ctx.globalAlpha = this.baseAlpha * Math.max(0.1, currentSpeed);
+    ctx.beginPath();
+    ctx.arc(x, y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    // 발광 효과
+    ctx.beginPath();
+    ctx.arc(x, y, this.size * 2.5, 0, Math.PI * 2);
+    let g = ctx.createRadialGradient(x,y,0, x,y,this.size*2.5);
+    g.addColorStop(0, color); g.addColorStop(1, 'transparent');
+    ctx.fillStyle = g;
+    ctx.globalAlpha = this.baseAlpha * 0.2 * Math.max(0.1, currentSpeed);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+const particles = [];
+for (let i = 0; i < 250; i++) particles.push(new Particle());
+
+// 그리기 메인 루프
+let lastTime = performance.now();
+sim.currentSpeed = 1.0;
+sim.currentIce = 1.0;
+
+function drawLoop(now) {
+  let dt = (now - lastTime) / 1000;
+  lastTime = now;
+  sim.time += dt;
+
+  // 부드러운 값 보간 (관성 효과)
+  if(sim.targetSpeed !== undefined) {
+    sim.currentSpeed += (sim.targetSpeed - sim.currentSpeed) * 2 * dt;
+    sim.currentIce += (sim.targetIce - sim.currentIce) * 1 * dt;
+  }
+
+  // 1. 배경 클리어
+  ctx.clearRect(0, 0, W, H);
+  const sY = H * 0.3;
+  const dY = H * 0.8;
+
+  // 2. 바다 배경 (수온에 따라 색상 변화)
+  // 온도가 높을수록 붉은빛 추가
+  let warmFactor = Math.max(0, (sim.temp - 2) / 13); // 2도=0, 15도=1
+  let bgGrad = ctx.createLinearGradient(0, sY, 0, H);
+  bgGrad.addColorStop(0, `rgb(${13 + warmFactor*40}, ${59 - warmFactor*10}, ${102 - warmFactor*20})`);
+  bgGrad.addColorStop(0.5, '#0a2d5c');
+  bgGrad.addColorStop(1, '#030d1f');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, sY, W, H - sY);
+
+  // 3. 파도 그리기
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.beginPath(); ctx.moveTo(0, sY);
+  for(let x=0; x<=W; x+=10) {
+    ctx.lineTo(x, sY + Math.sin(x*0.01 + sim.time*3)*4 + Math.sin(x*0.02 + sim.time)*2);
+  }
+  ctx.lineTo(W, sY-20); ctx.lineTo(0, sY-20); ctx.closePath(); ctx.fill();
+
+  // 4. 해저 지형
+  ctx.fillStyle = '#050a14';
+  ctx.beginPath(); ctx.moveTo(0, H);
+  for(let x=0; x<=W; x+=20) {
+    ctx.lineTo(x, H - 20 + Math.sin(x*0.005)*15);
+  }
+  ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+
+  // 5. 빙하 (오른쪽 위)
+  let iceW = 200 * sim.currentIce;
+  let iceH = 100 * sim.currentIce;
+  if (iceW > 5) {
+    ctx.fillStyle = `rgba(200, 240, 255, ${0.4 + sim.currentIce*0.4})`;
+    ctx.beginPath();
+    ctx.moveTo(W, sY);
+    ctx.lineTo(W - iceW, sY);
+    ctx.quadraticCurveTo(W - iceW*0.6, sY - iceH*1.2, W, sY - iceH);
+    ctx.closePath();
+    ctx.fill();
+    // 얼음 라인
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // 6. 담수(맹물) 유입 시각 효과 (염분이 낮아지거나 얼음이 녹을 때)
+  if (sim.currentIce < 0.9 || sim.sal < 34) {
+    let dropIntensity = Math.max(0, 1 - sim.currentIce);
+    if (sim.sal < 34) dropIntensity = Math.max(dropIntensity, (34 - sim.sal)/4);
+    
+    if (dropIntensity > 0.1) {
+      ctx.fillStyle = `rgba(150, 220, 255, ${dropIntensity * 0.8})`;
+      for(let i=0; i<10; i++) {
+        let dx = W - 100 + Math.sin(sim.time*5 + i*2)*50;
+        let dy = sY + ((sim.time*100 + i*30) % 100);
+        ctx.beginPath(); ctx.arc(dx, dy, 3, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.font = 'bold 20px Noto Sans KR';
+      ctx.textAlign = 'center';
+      ctx.fillText("💧 담수 대량 유입 (염분↓ 밀도↓)", W - 150, sY + 40);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  // 7. 큰 흐름 화살표 가이드 (속도에 따라 투명도 변화)
+  let arrowAlpha = Math.max(0.05, sim.currentSpeed * 0.3);
+  drawGuideArrow(ctx, W*0.3, sY+20, 200, 0, '#ff6b6b', arrowAlpha, "표층류 (열 운반)");
+  drawGuideArrow(ctx, W*0.7, dY, -200, 0, '#4fc3f7', arrowAlpha, "심층류 (~2cm/s)");
+  drawGuideArrow(ctx, W*0.9, sY+100, 0, 100, '#ffd54f', arrowAlpha, "침강 (밀도차)");
+
+  // 8. 파티클 업데이트 및 렌더
+  particles.forEach(p => {
+    p.update(dt, sim.currentSpeed);
+    p.draw(ctx, sim.currentSpeed);
+  });
+
+  // 9. 위치 텍스트
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.font = 'bold 24px Noto Sans KR';
+  ctx.fillText("적도 / 태평양", 50, sY - 30);
+  ctx.textAlign = 'right';
+  ctx.fillText("북극 / 대서양 고위도", W - 50, sY - 30);
+  ctx.textAlign = 'left';
+
+  // 시나리오 오토메이션 체크
+  handleAutoScenario(dt);
+
+  requestAnimationFrame(drawLoop);
+}
+
+// 화살표 그리는 보조 함수
+function drawGuideArrow(ctx, x, y, dx, dy, color, alpha, text) {
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = color; ctx.fillStyle = color;
+  ctx.lineWidth = 10; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+dx, y+dy); ctx.stroke();
+  
+  const angle = Math.atan2(dy, dx);
+  ctx.beginPath();
+  ctx.moveTo(x+dx, y+dy);
+  ctx.lineTo(x+dx - 25*Math.cos(angle-0.4), y+dy - 25*Math.sin(angle-0.4));
+  ctx.lineTo(x+dx - 25*Math.cos(angle+0.4), y+dy - 25*Math.sin(angle+0.4));
+  ctx.closePath(); ctx.fill();
+
+  ctx.font = 'bold 18px Noto Sans KR';
+  ctx.textAlign = 'center';
+  ctx.fillText(text, x + dx/2, y + dy/2 - 15);
+  ctx.textAlign = 'left';
+  ctx.globalAlpha = 1;
+}
+
+/**
+ * 시나리오 자동 재생 로직
+ */
+let autoMode = false;
+let targetT = 2;
+let targetS = 35;
+
+function runScenario(num) {
+  document.querySelectorAll('.btn-scenario').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-sc' + num).classList.add('active');
+  autoMode = true;
+
+  if (num === 1) { // 1. 정상
+    targetT = 2.0; targetS = 35.0;
+  } else if (num === 2) { // 2. 온난화 가속
+    targetT = 8.0; targetS = 33.5;
+  } else if (num === 3) { // 3. 순환 정지
+    targetT = 12.0; targetS = 31.0;
+  }
+}
+
+function stopAuto() {
+  autoMode = false;
+  document.querySelectorAll('.btn-scenario').forEach(b => b.classList.remove('active'));
+}
+
+function handleAutoScenario(dt) {
+  if (!autoMode) return;
+
+  // 타겟값으로 서서히 이동
+  let diffT = targetT - sim.temp;
+  let diffS = targetS - sim.sal;
+  
+  if (Math.abs(diffT) > 0.05 || Math.abs(diffS) > 0.05) {
+    updateSim(sim.temp + diffT * 1.5 * dt, sim.sal + diffS * 1.5 * dt);
+  }
+}
+
+function resetSim() {
+  stopAuto();
+  updateSim(2.0, 35.0);
+}
+
+// 초기화 실행
+updateSim(2.0, 35.0);
+requestAnimationFrame(drawLoop);
+
+</script>
+</body>
+</html>
