@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>심층 순환: 밀도 실험실</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f4f6f9; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .lab-container { display: flex; gap: 40px; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); width: 700px; }
+        
+        /* 바다 수조 디자인 */
+        .ocean-tank { position: relative; width: 200px; height: 400px; background: linear-gradient(to bottom, #8ee4af, #05386b); border: 4px solid #379683; border-radius: 10px; overflow: hidden; }
+        
+        /* 실험용 바닷물 덩어리 */
+        .water-block { position: absolute; left: 50%; top: 10%; transform: translateX(-50%); width: 80px; height: 80px; border-radius: 10px; background-color: #3498db; border: 2px solid white; transition: all 1s ease-in-out; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; text-shadow: 1px 1px 2px black; box-shadow: 0 0 15px rgba(255,255,255,0.5); }
+        
+        /* 조작 패널 */
+        .controls { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 20px; }
+        .control-group { background: #edf5e1; padding: 15px; border-radius: 10px; }
+        label { font-weight: bold; font-size: 1.1rem; display: block; margin-bottom: 10px; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        
+        /* 결과 텍스트 */
+        .result-box { margin-top: 20px; padding: 15px; background: #379683; color: white; border-radius: 10px; text-align: center; font-size: 1.2rem; font-weight: bold; }
+        
+        .tank-labels { position: absolute; width: 100%; height: 100%; pointer-events: none; }
+        .tank-labels span { position: absolute; left: 10px; color: white; font-size: 0.9rem; opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+    <h2>🌡️ 바닷물 밀도 조절 실험실</h2>
+    <p>슬라이더를 움직여 바닷물이 어떻게 심층 순환을 시작하는지 확인해보세요!</p>
+
+    <div class="lab-container">
+        <!-- 왼쪽: 바다 수조 -->
+        <div class="ocean-tank">
+            <div class="tank-labels">
+                <span style="top: 10px;">표층 (가벼움)</span>
+                <span style="bottom: 10px;">심해저 (무거움)</span>
+            </div>
+            <div class="water-block" id="waterBlock">바닷물</div>
+        </div>
+
+        <!-- 오른쪽: 조작 패널 -->
+        <div class="controls">
+            <div class="control-group">
+                <label>🌡️ 온도 (Temperature): <span id="tempVal">20</span>°C</label>
+                <input type="range" id="tempSlider" min="-2" max="30" value="20">
+                <small style="color:gray;">낮을수록 무거워집니다.</small>
+            </div>
+            
+            <div class="control-group">
+                <label>🧂 염분 (Salinity): <span id="saltVal">35</span> PSU</label>
+                <input type="range" id="saltSlider" min="30" max="40" value="35">
+                <small style="color:gray;">높을수록(짤수록) 무거워집니다.</small>
+            </div>
+
+            <div class="result-box" id="resultText">
+                현재 상태: 표면에 떠 있습니다. 🌊
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tempSlider = document.getElementById('tempSlider');
+        const saltSlider = document.getElementById('saltSlider');
+        const tempVal = document.getElementById('tempVal');
+        const saltVal = document.getElementById('saltVal');
+        const waterBlock = document.getElementById('waterBlock');
+        const resultText = document.getElementById('resultText');
+
+        function updateDensity() {
+            const temp = parseFloat(tempSlider.value);
+            const salt = parseFloat(saltSlider.value);
+            
+            tempVal.innerText = temp;
+            saltVal.innerText = salt;
+
+            // 밀도 계산 (단순화된 공식: 염분이 높고 온도가 낮을수록 밀도 증가)
+            // 기본 수치에서 얼마나 무거워졌는지 점수화 (0 ~ 100)
+            let densityScore = ((40 - temp) * 1.5) + ((salt - 30) * 4); 
+            
+            // 위치 계산 (점수가 높을수록 아래로)
+            let topPosition = (densityScore / 100) * 85; 
+            if(topPosition > 85) topPosition = 85;
+            if(topPosition < 5) topPosition = 5;
+
+            // 시각적 업데이트 (위치 및 색상)
+            waterBlock.style.top = topPosition + "%";
+            
+            // 온도에 따른 색상 변화 (차가우면 파란색, 따뜻하면 빨간색)
+            let r = Math.min(255, Math.max(0, temp * 8));
+            let b = Math.min(255, Math.max(0, 255 - (temp * 8)));
+            waterBlock.style.backgroundColor = `rgb(${r}, 50, ${b})`;
+
+            // 텍스트 업데이트
+            if (topPosition > 70) {
+                resultText.innerHTML = "극지방 상태: 매우 차갑고 짜서 <br>⬇️ 심해로 침강합니다!";
+                resultText.style.background = "#05386b";
+            } else if (topPosition < 30) {
+                resultText.innerHTML = "적도 상태: 따뜻하고 가벼워서 <br>⬆️ 표층으로 떠오릅니다!";
+                resultText.style.background = "#e74c3c";
+            } else {
+                resultText.innerHTML = "중층수: 천천히 이동 중입니다. ➡️";
+                resultText.style.background = "#379683";
+            }
+        }
+
+        tempSlider.addEventListener('input', updateDensity);
+        saltSlider.addEventListener('input', updateDensity);
+        updateDensity(); // 초기화
+    </script>
+</body>
+</html>
