@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>심층 순환 시뮬레이션 — 강화판</title>
+<title>심층 순환 시뮬레이션</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
   *{margin:0;padding:0;box-sizing:border-box}
@@ -101,50 +101,50 @@
 <div class="alert-overlay" id="alertBox"></div>
 
 <div class="topbar">
-  <div class="logo">DEEP CIRCULATION <small>Simulation v3.0</small></div>
+  <div class="logo">DEEP CIRCULATION <small>Simulation</small></div>
   <div class="rec"><div class="rec-dot"></div><span>LIVE</span></div>
-  <div class="fps-box" id="fpsBox">60 FPS</div>
+  <div class="fps-box" id="fpsBox">30 FPS</div>
 </div>
 
 <div class="panel" id="leftPanel">
   <div class="section-title">환경 변수 제어</div>
   <div class="param">
-    <div class="param-head"><span class="lbl">🌡 고위도 수온</span><span class="val" id="vT">2.0°C</span></div>
+    <div class="param-head"><span class="lbl">고위도 수온</span><span class="val" id="vT">2.0°C</span></div>
     <input type="range" id="sT" min="-2" max="20" value="2" step=".5" oninput="up()">
   </div>
   <div class="param">
-    <div class="param-head"><span class="lbl">🧂 표층 염분</span><span class="val" id="vS">35.0‰</span></div>
+    <div class="param-head"><span class="lbl">표층 염분</span><span class="val" id="vS">35.0‰</span></div>
     <input type="range" id="sS" min="26" max="39" value="35" step=".2" oninput="up()">
   </div>
   <div class="param">
-    <div class="param-head"><span class="lbl">🧊 빙하 융해율</span><span class="val" id="vI">0%</span></div>
+    <div class="param-head"><span class="lbl">빙하 융해율</span><span class="val" id="vI">0%</span></div>
     <input type="range" id="sI" min="0" max="100" value="0" step="1" oninput="up()">
   </div>
   <div class="param">
-    <div class="param-head"><span class="lbl">💨 바람 세기</span><span class="val" id="vW">50%</span></div>
+    <div class="param-head"><span class="lbl">바람 세기</span><span class="val" id="vW">50%</span></div>
     <input type="range" id="sW" min="0" max="100" value="50" step="1" oninput="up()">
   </div>
   <div class="param">
-    <div class="param-head"><span class="lbl">✨ 입자 크기</span><span class="val" id="vPS">1.0x</span></div>
+    <div class="param-head"><span class="lbl">입자 크기</span><span class="val" id="vPS">1.0x</span></div>
     <input type="range" id="sPS" min=".5" max="3" value="1" step=".1" oninput="up()">
   </div>
   <div class="param">
-    <div class="param-head"><span class="lbl">🔢 입자 수</span><span class="val" id="vPC">400</span></div>
+    <div class="param-head"><span class="lbl">입자 수</span><span class="val" id="vPC">400</span></div>
     <input type="range" id="sPC" min="50" max="1000" value="400" step="10" oninput="up()">
   </div>
   <div class="param">
-    <div class="param-head"><span class="lbl">🌀 난류 강도</span><span class="val" id="vTurb">30%</span></div>
+    <div class="param-head"><span class="lbl">난류 강도</span><span class="val" id="vTurb">30%</span></div>
     <input type="range" id="sTurb" min="0" max="100" value="30" step="1" oninput="up()">
   </div>
 
   <div class="section-title">프리셋 시나리오</div>
   <div class="presets">
-    <button class="pre-btn on" id="prNorm" onclick="pre('norm')">🌊 정상</button>
-    <button class="pre-btn" id="prWarm" onclick="pre('warm')">🔥 온난화</button>
-    <button class="pre-btn" id="prIceA" onclick="pre('iceA')">❄️ 빙하기</button>
-    <button class="pre-btn" id="prStop" onclick="pre('stop')">🚨 순환정지</button>
-    <button class="pre-btn" id="prFast" onclick="pre('fast')">⚡ 강한순환</button>
-    <button class="pre-btn" id="prYD" onclick="pre('YD')">🥶 영거드라이아스</button>
+    <button class="pre-btn on" id="prNorm" onclick="pre('norm')">정상</button>
+    <button class="pre-btn" id="prWarm" onclick="pre('warm')">온난화</button>
+    <button class="pre-btn" id="prIceA" onclick="pre('iceA')">빙하기</button>
+    <button class="pre-btn" id="prStop" onclick="pre('stop')">순환정지</button>
+    <button class="pre-btn" id="prFast" onclick="pre('fast')">강한순환</button>
+    <button class="pre-btn" id="prYD" onclick="pre('YD')">영거드라이아스</button>
   </div>
 
   <div class="section-title">표시 옵션</div>
