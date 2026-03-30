@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>심층 순환 실시간 시뮬레이터</title>
+<title>심층 순환 시뮬레이터 1</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;500;700;900&display=swap');
   
@@ -165,22 +165,22 @@
 
 <canvas id="simCanvas"></canvas>
 <div id="warning-vignette"></div>
-<div id="warning-text">⚠️ 순환 정지<span>밀도 차이가 사라져 심층 침강이 멈췄습니다.</span></div>
+<div id="warning-text">순환 정지<span>밀도 차이가 사라져 심층 침강이 멈췄습니다.</span></div>
 
 <div id="ui-layer">
   <header>
     <h1>심층 순환 시뮬레이터</h1>
-    <p>고위도 해수의 온도와 염분을 조절하여 대양 컨베이어 벨트의 변화를 관찰하세요</p>
+    <p>고위도 해수의 온도와 염분을 조절하여 대양 컨베이어 벨트(심층 순환)의 변화를 관찰하세요</p>
   </header>
 
   <div class="middle-section">
     <!-- 좌측 컨트롤 패널 -->
     <div class="panel control-panel">
-      <h2>⚙️ 환경 변수 조절 <button onclick="resetSim()" style="background:none;border:none;color:#888;cursor:pointer;">↺ 초기화</button></h2>
+      <h2>환경 변수 조절 <button onclick="resetSim()" style="background:none;border:none;color:#888;cursor:pointer;">↺ 초기화</button></h2>
       
       <div class="control-group">
         <div class="control-label">
-          <span>🌡 수온</span>
+          <span>수온</span>
           <span class="val" id="val-temp" style="color:#ff6b6b">2.0 °C</span>
         </div>
         <input type="range" id="slider-temp" min="-2" max="15" step="0.1" value="2">
@@ -191,7 +191,7 @@
 
       <div class="control-group">
         <div class="control-label">
-          <span>🧂 염분</span>
+          <span>염분</span>
           <span class="val" id="val-sal" style="color:#a0e0ff">35.0 ‰</span>
         </div>
         <input type="range" id="slider-sal" min="30" max="37" step="0.1" value="35">
@@ -201,18 +201,18 @@
       </div>
       
       <div style="font-size:0.85em; color:#a0c0e0; line-height:1.5; padding-top:10px; border-top:1px solid rgba(255,255,255,0.1);">
-        💡 <strong>원리:</strong> 수온이 낮고 염분이 높을수록 물이 무거워져(밀도 증가) 심해로 강하게 가라앉습니다.
+        <strong>원리:</strong> 수온이 낮고 염분이 높을수록 물이 무거워져(밀도 증가) 심해로 강하게 가라앉습니다.
       </div>
     </div>
 
     <!-- 우측 모니터 패널 -->
     <div class="panel data-panel">
-      <h2>📊 실시간 데이터 모니터</h2>
+      <h2>데이터 모니터</h2>
       
       <div class="data-box">
         <div class="data-title">고위도 해수 밀도</div>
         <div class="data-value" id="disp-density" style="color:#fff;">1027.8</div>
-        <div style="font-size:0.8em; color:#888;">(kg/m³) / 기준치: 1027.5</div>
+        <div style="font-size:0.8em; color:#888;">(kg/m³) / 기준치: 1022~1027.5</div>
       </div>
 
       <div class="data-box">
@@ -230,9 +230,9 @@
 
   <!-- 하단 비디오 컨트롤 -->
   <div class="bottom-section">
-    <button class="btn-scenario active" id="btn-sc1" onclick="runScenario(1)">▶ 1. 정상 순환</button>
-    <button class="btn-scenario" id="btn-sc2" onclick="runScenario(2)">▶ 2. 지구온난화 가속</button>
-    <button class="btn-scenario danger" id="btn-sc3" onclick="runScenario(3)">🚨 3. 빙하 융해 및 순환 정지</button>
+    <button class="btn-scenario active" id="btn-sc1" onclick="runScenario(1)">1. 정상 순환</button>
+    <button class="btn-scenario" id="btn-sc2" onclick="runScenario(2)">2. 지구온난화 가속</button>
+    <button class="btn-scenario danger" id="btn-sc3" onclick="runScenario(3)">3. 빙하 융해 및 순환 정지</button>
   </div>
 </div>
 
