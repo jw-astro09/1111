@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>심층 순환: 밀도 실험실</title>
+    <title>해수의 밀도</title>
     <style>
         body { font-family: 'Malgun Gothic', sans-serif; background-color: #f4f6f9; display: flex; flex-direction: column; align-items: center; padding: 20px; }
         .lab-container { display: flex; gap: 40px; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); width: 700px; }
@@ -28,35 +28,35 @@
 </head>
 <body>
 
-    <h2>🌡️ 바닷물 밀도 조절 실험실</h2>
+    <h2>해수의 염분과 온도에 따른 밀도 변화 실험실</h2>
     <p>슬라이더를 움직여 바닷물이 어떻게 심층 순환을 시작하는지 확인해보세요!</p>
 
     <div class="lab-container">
-        <!-- 왼쪽: 바다 수조 -->
+        <!-- 오른쪽: 바다 수조 -->
         <div class="ocean-tank">
             <div class="tank-labels">
-                <span style="top: 10px;">표층 (가벼움)</span>
-                <span style="bottom: 10px;">심해저 (무거움)</span>
+                <span style="top: 10px;">표층</span>
+                <span style="bottom: 10px;">심층</span>
             </div>
             <div class="water-block" id="waterBlock">바닷물</div>
         </div>
 
-        <!-- 오른쪽: 조작 패널 -->
+        <!-- 왼쪽: 조작 패널 -->
         <div class="controls">
             <div class="control-group">
-                <label>🌡️ 온도 (Temperature): <span id="tempVal">20</span>°C</label>
+                <label>온도 (Temperature): <span id="tempVal">20</span>°C</label>
                 <input type="range" id="tempSlider" min="-2" max="30" value="20">
-                <small style="color:gray;">낮을수록 무거워집니다.</small>
+                <small style="color:gray;">낮을수록 밀도가 커져 무거워지기 때문에 바닷물이 침강합니다.</small>
             </div>
             
             <div class="control-group">
-                <label>🧂 염분 (Salinity): <span id="saltVal">35</span> PSU</label>
+                <label>염분 (Salinity): <span id="saltVal">35</span> PSU</label>
                 <input type="range" id="saltSlider" min="30" max="40" value="35">
-                <small style="color:gray;">높을수록(짤수록) 무거워집니다.</small>
+                <small style="color:gray;">높을수록(짤수록) 밀도가 커져 무거워지기 때문에 침강합니다.</small>
             </div>
 
             <div class="result-box" id="resultText">
-                현재 상태: 표면에 떠 있습니다. 🌊
+                현재 상태: 표면에 떠 있습니다.
             </div>
         </div>
     </div>
@@ -95,13 +95,13 @@
 
             // 텍스트 업데이트
             if (topPosition > 70) {
-                resultText.innerHTML = "극지방 상태: 매우 차갑고 짜서 <br>⬇️ 심해로 침강합니다!";
+                resultText.innerHTML = "극지방 상태: 매우 차갑고 짜서 <br>심해로 침강합니다!";
                 resultText.style.background = "#05386b";
             } else if (topPosition < 30) {
-                resultText.innerHTML = "적도 상태: 따뜻하고 가벼워서 <br>⬆️ 표층으로 떠오릅니다!";
+                resultText.innerHTML = "적도 상태: 따뜻하고 가벼워서 <br>표층으로 떠오릅니다!";
                 resultText.style.background = "#e74c3c";
             } else {
-                resultText.innerHTML = "중층수: 천천히 이동 중입니다. ➡️";
+                resultText.innerHTML = "중층수: 천천히 이동 중입니다.";
                 resultText.style.background = "#379683";
             }
         }
