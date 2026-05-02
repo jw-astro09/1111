@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>포사체 운동 계산기</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; display: flex; flex-direction: row; padding: 20px; background-color: #f5f5f5; }
+        .sidebar { width: 300px; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-right: 20px; }
+        .chart-container { flex-grow: 1; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; height: 500px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        #results { margin-top: 20px; padding: 15px; border-top: 2px solid #eee; color: #333; font-weight: bold; line-height: 1.6; }
+        .error { color: #d9534f; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>파라미터 설정</h2>
+    <div class="input-group">
+        <label>수평 거리 R (m):</label>
+        <input type="number" id="range_R" value="40" step="1">
+    </div>
+    <div class="input-group">
+        <label>초기 속도 v₀ (m/s):</label>
+        <input type="number" id="v0" value="25" step="1">
+    </div>
+    <div class="input-group">
+        <label>목표 높이 Δh (m):</label>
+        <input type="number" id="dh" value="5" step="0.5">
+    </div>
+    <div id="results"></div>
+</div>
+
+<div class="chart-container">
+    <canvas id="projectileChart"></canvas>
+</div>
+
+<script>
+    const g = 9.81;
+    let chart;
+
+    // 초기화 함수
+    function init() {
+        const ctx = document.getElementById('projectileChart').getContext('2d');
+        chart = new Chart(ctx, {
+            type: 'scatter',
+            data: { datasets: [] },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { type: 'linear', position: 'bottom', title: { display: true, text: '거리 (m)' } },
+                    y: { title: { display: true, text: '높이 (m)' }, min: 0 }
+                },
+                plugins: {
+                    title: { display: true, text: '포사체 운동 궤적' }
+                }
+            }
+        });
+
+        // 이벤트 리스너 등록
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', updatePlot);
+        });
+
+        updatePlot();
+    }
+
+    function calculateAngles(R, v0, dh) {
+        const A = (g * Math.pow(R, 2)) / (2 * Math.pow(v0, 2));
+        const B = -R;
+        const C = A + dh;
+
+        const D = Math.pow(B, 2) - 4 * A * C;
+        if (D < 0) return null;
+
+        const sqrtD = Math.sqrt(D);
+        const tan1 = (-B + sqrtD) / (2 * A);
+        const tan2 = (-B - sqrtD) / (2 * A);
+
+        const theta1 = Math.atan(tan1) * (180 / Math.PI);
+        const theta2 = Math.atan(tan2) * (180 / Math.PI);
+
+        return [theta1, theta2];
+    }
+
+    function updatePlot() {
+        const R = parseFloat(document.getElementById('range_R').value);
+        const v0 = parseFloat(document.getElementById('v0').value);
+        const dh = parseFloat(document.getElementById('dh').value);
+        const resultsDiv = document.getElementById('results');
+
+        const angles = calculateAngles(R, v0, dh);
+        chart.data.datasets = [];
+
+        if (!angles) {
+            resultsDiv.innerHTML = '<span class="error">도달 불가능 (속도 부족)</span>';
+            chart.update();
+            return;
+        }
+
+        let resultHTML = "";
+        const colors = ['#1f77b4', '#ff7f0e'];
+
+        angles.forEach((theta, i) => {
+            const thetaRad = theta * (Math.PI / 180);
+            
+            // 최고점 계산
+            const vy0 = v0 * Math.sin(thetaRad);
+            const hMax = Math.pow(vy0, 2) / (2 * g);
+            const tHmax = vy0 / g;
+            const xHmax = v0 * Math.cos(thetaRad) * tHmax;
+
+            resultHTML += `각도 ${i+1}: ${theta.toFixed(2)}° (최고: ${hMax.toFixed(2)}m)<br>`;
+
+            // 궤적 데이터 생성
+            const tEnd = R / (v0 * Math.cos(thetaRad));
+            const trajectoryData = [];
+            for (let t = 0; t <= tEnd; t += tEnd / 50) {
+                let x = v0 * Math.cos(thetaRad) * t;
+                let y = v0 * Math.sin(thetaRad) * t - 0.5 * g * Math.pow(t, 2);
+                trajectoryData.push({x: x, y: y});
+            }
+            // 마지막 점(목표점) 확실히 추가
+            trajectoryData.push({x: R, y: dh});
+
+            // 데이터셋 추가 (선)
+            chart.data.datasets.push({
+                label: `${theta.toFixed(1)}° (H:${hMax.toFixed(1)}m)`,
+                data: trajectoryData,
+                showLine: true,
+                borderColor: colors[i],
+                backgroundColor: colors[i],
+                pointRadius: 0,
+                borderWidth: 2
+            });
+
+            // 최고점 포인트 추가
+            chart.data.datasets.push({
+                label: `최고점 ${i+1}`,
+                data: [{x: xHmax, y: hMax}],
+                pointRadius: 5,
+                backgroundColor: colors[i],
+                pointStyle: 'circle'
+            });
+        });
+
+        // 목표선 표시 (수평선)
+        chart.data.datasets.push({
+            label: '목표 높이',
+            data: [{x: 0, y: dh}, {x: R, y: dh}],
+            showLine: true,
+            borderColor: 'red',
+            borderDash: [5, 5],
+            pointRadius: 0,
+            borderWidth: 1
+        });
+
+        resultsDiv.innerHTML = resultHTML;
+        chart.update();
+    }
+
+    window.onload = init;
+</script>
+
+</body>
+</html>
